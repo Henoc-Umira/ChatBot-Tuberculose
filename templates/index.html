@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Diagnostic de la Tuberculose</title>
+</head>
+<body> 
+    <div id="chatbotTitle">
+        <h1>Chat Détecttion Tuberculose</h1>
+    </div>
+    <div id="chatbotContainer">
+
+        <ul id="chatbox"></ul>
+
+    </div>
+
+    <div id="chatbotTitle">
+        <input type="text" id="userInput" placeholder="Tapez votre réponse ici...">
+        <button onclick="handleUserInput()">Envoyer</button>
+    </div>
+
+    <script>
+        const questions = {{ questions | tojson }};
+        let currentQuestionIndex = 0;
+        let patientData = {};
+
+        function sendQuestion(question) {
+            const chatbox = document.getElementById('chatbox');
+            const li = document.createElement('li');
+            li.textContent = question;
+            chatbox.appendChild(li);
+            chatbox.scrollTop = chatbox.scrollHeight;
+           
+        }
+
+        function handleUserInput() {
+            const userInput = document.getElementById('userInput').value.trim();
+            if(userInput.toUpperCase() != "OUI" && userInput.toUpperCase() != "NON"){
+                const chatbox = document.getElementById('chatbox');
+                const li = document.createElement('li');
+                li.textContent = "Invalide répondez par OUI ou NON !!!";
+                li.classList.add('user-response');
+                chatbox.appendChild(li);
+                chatbox.scrollTop = chatbox.scrollHeight;
+                currentQuestionIndex = currentQuestionIndex - 1;
+            }else if(userInput) {
+                const chatbox = document.getElementById('chatbox');
+                const li = document.createElement('li');
+                li.textContent = userInput;
+                li.classList.add('user-response');
+                chatbox.appendChild(li);
+                chatbox.scrollTop = chatbox.scrollHeight;
+
+                patientData[questions[currentQuestionIndex]] = userInput.toUpperCase();
+                currentQuestionIndex++;
+                document.getElementById('userInput').value = '';
+
+                if (currentQuestionIndex < questions.length) {
+                    sendQuestion(questions[currentQuestionIndex]);
+                } else {
+                    // Envoyer les données au serveur pour le diagnostic
+                    fetch('/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(patientData),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        sendQuestion(data.diagnosis);
+                    });
+                }
+            }
+        }
+
+        // Démarrer le chatbot avec la première question
+        sendQuestion(questions[currentQuestionIndex]);
+    </script>
+</body>
+</html>
